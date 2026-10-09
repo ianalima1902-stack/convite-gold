@@ -58,8 +58,6 @@
       <source src="convite.mp4" type="video/mp4">
     </video>
 
-    <button class="closeBtn" id="backToCover" aria-label="Voltar para a capa">×</button>
-
     <!-- Troque # pelos links quando tiver WhatsApp e localização -->
     <a class="hotspot video-action" id="rsvpBtn" href="#" aria-label="Confirmar presença"></a>
     <a class="hotspot video-action" id="locationBtn" href="#" aria-label="Abrir localização"></a>
@@ -90,6 +88,7 @@
 
   document.getElementById('openInvite').addEventListener('click',async()=>{
     showPage(videoPage);
+    savedVideoTime=0;
     video.currentTime=0;
     video.muted=false;
     try{await video.play()}catch(e){
@@ -101,24 +100,36 @@
   /* O vídeo não responde a toques na área livre.
      Assim, tocar na tela não pausa, não silencia e não altera o áudio. */
 
+  let savedVideoTime=0;
+
   document.getElementById('giftBtn').addEventListener('click',()=>{
+    savedVideoTime=video.currentTime||0;
     video.pause();
     showPage(giftPage);
   });
 
-  function returnToVideo(){
+  async function returnToVideo(){
     showPage(videoPage);
-    /* volta para a tela final, onde ficam os botões */
-    if(video.duration && video.currentTime < 30) video.currentTime=Math.max(30,video.duration-3);
+
+    if(video.duration){
+      if(savedVideoTime >= video.duration - 0.35){
+        video.currentTime=Math.max(0,video.duration-8);
+      }else{
+        video.currentTime=Math.max(0,Math.min(savedVideoTime,video.duration-0.1));
+      }
+    }
+
+    video.muted=false;
+    try{
+      await video.play();
+    }catch(e){
+      video.muted=true;
+      try{await video.play()}catch(_){}
+    }
   }
+
   document.getElementById('giftClose').addEventListener('click',returnToVideo);
   document.getElementById('backFromGifts').addEventListener('click',returnToVideo);
-
-  document.getElementById('backToCover').addEventListener('click',()=>{
-    video.pause();
-    video.currentTime=0;
-    showPage(coverPage);
-  });
 
   /* Enquanto os links reais não forem informados, não sai da página. */
   ['rsvpBtn','locationBtn'].forEach(id=>{
