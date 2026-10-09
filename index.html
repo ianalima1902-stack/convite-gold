@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0e2c8d">
+  <title>Lorenzo | 1 aninho</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#06194f;font-family:Arial,sans-serif}
+    body{display:grid;place-items:center;overflow-x:hidden}
+    .app{position:relative;width:min(100vw,calc(100vh * .5625));aspect-ratio:9/16;background:#0e2c8d;overflow:hidden}
+    .page{position:absolute;inset:0;display:none;background:#0e2c8d}
+    .page.active{display:block}
+    .art,.video{width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none}
+    .hotspot{position:absolute;z-index:20;border:0;padding:0;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .hotspot:focus-visible{outline:3px solid rgba(255,255,255,.9);outline-offset:2px;border-radius:18px}
+
+    /* Capa: área do envelope */
+    #openInvite{left:10%;top:28%;width:80%;height:32%}
+
+    /* Botões sobre a tela final do vídeo */
+    #rsvpBtn{left:14%;top:53.5%;width:22%;height:14%}
+    #locationBtn{left:39%;top:53.5%;width:22%;height:14%}
+    #giftBtn{left:64%;top:53.5%;width:22%;height:14%}
+
+    /* Só ficam clicáveis quando a parte interativa do vídeo chega */
+    .video-action{pointer-events:none}
+    .video-action.ready{pointer-events:auto}
+
+    .closeBtn{
+      position:absolute;z-index:30;top:max(12px,env(safe-area-inset-top));right:12px;
+      width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.92);
+      background:rgba(4,21,75,.48);color:#fff;font-size:25px;line-height:1;cursor:pointer;
+      display:grid;place-items:center;backdrop-filter:blur(4px)
+    }
+
+    /* Área transparente ampla para voltar na página de presentes */
+    #backFromGifts{left:2%;top:2%;width:14%;height:9%}
+
+    .hint{
+      position:absolute;z-index:25;left:50%;bottom:1.4%;transform:translateX(-50%);
+      color:white;background:rgba(3,19,67,.72);padding:8px 13px;border-radius:999px;
+      font-size:11px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none
+    }
+    .hint.show{opacity:1}
+  </style>
+</head>
+<body>
+<main class="app" aria-label="Convite de 1 ano de Lorenzo">
+
+  <section class="page active" id="coverPage">
+    <img class="art" src="capa.png" alt="Capa do convite de Lorenzo">
+    <button class="hotspot" id="openInvite" aria-label="Abrir convite"></button>
+  </section>
+
+  <section class="page" id="videoPage">
+    <video class="video" id="inviteVideo" playsinline preload="metadata">
+      <source src="convite.mp4" type="video/mp4">
+    </video>
+
+    <button class="closeBtn" id="backToCover" aria-label="Voltar para a capa">×</button>
+
+    <!-- Troque # pelos links quando tiver WhatsApp e localização -->
+    <a class="hotspot video-action" id="rsvpBtn" href="#" aria-label="Confirmar presença"></a>
+    <a class="hotspot video-action" id="locationBtn" href="#" aria-label="Abrir localização"></a>
+    <button class="hotspot video-action" id="giftBtn" aria-label="Abrir sugestões de presentes"></button>
+
+    <div class="hint" id="linkHint">Link será adicionado</div>
+  </section>
+
+  <section class="page" id="giftPage">
+    <img class="art" src="presentes.png" alt="Sugestões de presentes para Lorenzo">
+    <button class="closeBtn" id="giftClose" aria-label="Voltar para o convite">×</button>
+    <button class="hotspot" id="backFromGifts" aria-label="Voltar para o convite"></button>
+  </section>
+
+</main>
+
+<script>
+  const coverPage=document.getElementById('coverPage');
+  const videoPage=document.getElementById('videoPage');
+  const giftPage=document.getElementById('giftPage');
+  const video=document.getElementById('inviteVideo');
+  const actions=[...document.querySelectorAll('.video-action')];
+  const hint=document.getElementById('linkHint');
+
+  function showPage(page){
+    [coverPage,videoPage,giftPage].forEach(p=>p.classList.remove('active'));
+    page.classList.add('active');
+  }
+
+  function setActionsReady(ready){
+    actions.forEach(a=>a.classList.toggle('ready',ready));
+  }
+
+  document.getElementById('openInvite').addEventListener('click',async()=>{
+    showPage(videoPage);
+    video.currentTime=0;
+    video.muted=false;
+    setActionsReady(false);
+    try{await video.play()}catch(e){
+      video.muted=true;
+      try{await video.play()}catch(_){}
+    }
+  });
+
+  /* A tela com os 3 ícones já aparece no trecho final do vídeo.
+     Libera os hotspots a partir de 30 s e mantém após o término. */
+  video.addEventListener('timeupdate',()=>{
+    if(video.currentTime>=30) setActionsReady(true);
+  });
+  video.addEventListener('ended',()=>setActionsReady(true));
+
+  /* Um toque no vídeo alterna o som, sem interferir nos hotspots. */
+  video.addEventListener('click',()=>{video.muted=!video.muted});
+
+  document.getElementById('giftBtn').addEventListener('click',()=>{
+    video.pause();
+    showPage(giftPage);
+  });
+
+  function returnToVideo(){
+    showPage(videoPage);
+    /* volta para a tela final, onde ficam os botões */
+    if(video.duration && video.currentTime < 30) video.currentTime=Math.max(30,video.duration-3);
+    setActionsReady(true);
+  }
+  document.getElementById('giftClose').addEventListener('click',returnToVideo);
+  document.getElementById('backFromGifts').addEventListener('click',returnToVideo);
+
+  document.getElementById('backToCover').addEventListener('click',()=>{
+    video.pause();
+    video.currentTime=0;
+    setActionsReady(false);
+    showPage(coverPage);
+  });
+
+  /* Enquanto os links reais não forem informados, não sai da página. */
+  ['rsvpBtn','locationBtn'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('click',e=>{
+      if(el.getAttribute('href')==='#'){
+        e.preventDefault();
+        hint.classList.add('show');
+        clearTimeout(window.hintTimer);
+        window.hintTimer=setTimeout(()=>hint.classList.remove('show'),1600);
+      }
+    });
+  });
+</script>
+</body>
+</html>
