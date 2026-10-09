@@ -24,9 +24,8 @@
     #locationBtn{left:39%;top:53.5%;width:22%;height:14%}
     #giftBtn{left:64%;top:53.5%;width:22%;height:14%}
 
-    /* Só ficam clicáveis quando a parte interativa do vídeo chega */
-    .video-action{pointer-events:none}
-    .video-action.ready{pointer-events:auto}
+    /* Os botões ficam clicáveis durante toda a reprodução do vídeo */
+    .video-action{pointer-events:auto;touch-action:manipulation}
 
     .closeBtn{
       position:absolute;z-index:30;top:max(12px,env(safe-area-inset-top));right:12px;
@@ -82,7 +81,6 @@
   const videoPage=document.getElementById('videoPage');
   const giftPage=document.getElementById('giftPage');
   const video=document.getElementById('inviteVideo');
-  const actions=[...document.querySelectorAll('.video-action')];
   const hint=document.getElementById('linkHint');
 
   function showPage(page){
@@ -90,30 +88,18 @@
     page.classList.add('active');
   }
 
-  function setActionsReady(ready){
-    actions.forEach(a=>a.classList.toggle('ready',ready));
-  }
-
   document.getElementById('openInvite').addEventListener('click',async()=>{
     showPage(videoPage);
     video.currentTime=0;
     video.muted=false;
-    setActionsReady(false);
     try{await video.play()}catch(e){
       video.muted=true;
       try{await video.play()}catch(_){}
     }
   });
 
-  /* A tela com os 3 ícones já aparece no trecho final do vídeo.
-     Libera os hotspots a partir de 30 s e mantém após o término. */
-  video.addEventListener('timeupdate',()=>{
-    if(video.currentTime>=30) setActionsReady(true);
-  });
-  video.addEventListener('ended',()=>setActionsReady(true));
-
-  /* Um toque no vídeo alterna o som, sem interferir nos hotspots. */
-  video.addEventListener('click',()=>{video.muted=!video.muted});
+  /* O vídeo não responde a toques na área livre.
+     Assim, tocar na tela não pausa, não silencia e não altera o áudio. */
 
   document.getElementById('giftBtn').addEventListener('click',()=>{
     video.pause();
@@ -124,7 +110,6 @@
     showPage(videoPage);
     /* volta para a tela final, onde ficam os botões */
     if(video.duration && video.currentTime < 30) video.currentTime=Math.max(30,video.duration-3);
-    setActionsReady(true);
   }
   document.getElementById('giftClose').addEventListener('click',returnToVideo);
   document.getElementById('backFromGifts').addEventListener('click',returnToVideo);
@@ -132,7 +117,6 @@
   document.getElementById('backToCover').addEventListener('click',()=>{
     video.pause();
     video.currentTime=0;
-    setActionsReady(false);
     showPage(coverPage);
   });
 
